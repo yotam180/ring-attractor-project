@@ -21,7 +21,7 @@ class RingAttractor:
         self.init_strategy = init_strategy
         self.rng = rng
 
-        self.weights = init_strategy.compute_weights()
+        self.weights = init_strategy.compute_weights(self)
 
     def _initialize_neuron_angles(self) -> np.ndarray:
         return 2 * np.pi * (np.arange(self.ring_size) / self.ring_size)
