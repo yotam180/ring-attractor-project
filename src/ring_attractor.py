@@ -11,25 +11,26 @@ class RingAttractor:
         init_strategy: "RingAttractorInitStrategy",
         nonlinearity_function: NonlinearityFunction,
         rng: np.random.Generator,
+        init_noise_scale: float = 0.01,  # TODO: Pass this in a better way
     ):
         self.ring_size = ring_size
+        self.rng = rng
+
         self.neuron_angles = self._initialize_neuron_angles()
-        self.neuron_rates = self._initialize_neuron_rates()
+        self.neuron_rates = self._initialize_neuron_rates(init_noise_scale)
         self.shape = self.neuron_rates.shape
 
         self.nonlinearity_function = nonlinearity_function
         self.init_strategy = init_strategy
-        self.rng = rng
 
         self.weights = init_strategy.compute_weights(self)
 
     def _initialize_neuron_angles(self) -> np.ndarray:
         return 2 * np.pi * (np.arange(self.ring_size) / self.ring_size)
 
-    def _initialize_neuron_rates(self) -> np.ndarray:
-        # TODO: We might want to initialize the neuron rates with a small
-        # random noise
-        return np.zeros(self.ring_size, dtype=np.float32)
+    def _initialize_neuron_rates(self, init_noise_scale: float = 0.01) -> np.ndarray:
+        noise = self.rng.standard_normal(self.ring_size).astype(np.float32)
+        return init_noise_scale * noise
 
 
 class RingAttractorSimulator:
@@ -54,7 +55,7 @@ class RingAttractorSimulator:
         noise = self._create_noise()
         input_total = self.attractor.weights @ self.attractor.neuron_rates + external_input + noise * self.sigma
 
-        rate_diff = -self.attractor.neuron_rates + self.attractor.nonlinearity_function.apply()
+        rate_diff = -self.attractor.neuron_rates + self.attractor.nonlinearity_function.apply(input_total)
         new_rates = self.attractor.neuron_rates + rate_diff * self.dt / self.tau
 
         return new_rates
