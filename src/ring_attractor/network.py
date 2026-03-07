@@ -25,6 +25,20 @@ class RingAttractor:
 
         self.weights = init_strategy.compute_weights(self)
 
+    def decode_theta(self) -> tuple[float, float]:
+        """
+        TODO: Find the correct citation for this method of decoding the theta. This takes the current
+            ring state and returns the "predicted" theta.
+            According to ChatGPT, this is the standard measure from circular statistics (Fisher 1993,
+            Mardia & Jupp 2000).
+
+        We return the angle and magnitude of the complex result, to indicate both the direction
+        and the confidence in the prediction. (confidence = 0 -> random distribution in ring, confidence = 1 -> pure bump)
+        """
+        z = np.sum(self.neuron_rates * np.exp(1j * self.neuron_angles))
+
+        return np.angle(z), np.abs(z)
+
     def _initialize_neuron_angles(self) -> np.ndarray:
         return 2 * np.pi * (np.arange(self.ring_size) / self.ring_size)
 
