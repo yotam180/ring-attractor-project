@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 
-from nonlinearity import NonlinearityFunction
+from ring_attractor.nonlinearity import NonlinearityFunction
 
 
 class RingAttractor:

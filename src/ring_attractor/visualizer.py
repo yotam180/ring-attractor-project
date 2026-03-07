@@ -5,7 +5,7 @@ Visualization utilities fro the ring attractor model.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ring_attractor import RingAttractor
+from ring_attractor.network import RingAttractor
 
 
 def plot_ring_state(
