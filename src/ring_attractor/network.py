@@ -114,6 +114,9 @@ class CosineKernelInitStrategy(RingAttractorInitStrategy):
         angles = attractor.neuron_angles
         theta_diffs = angles[:, None] - angles[None, :]
         cosine_diffs = np.cos(theta_diffs)
-        weights = self.j0 + self.j1 * cosine_diffs
+
+        # We divide by N to keep eigenvalues O(1) regardless of network size,
+        # preventing Euler instability as N grows.
+        weights = (self.j0 + self.j1 * cosine_diffs) / attractor.ring_size
 
         return weights
