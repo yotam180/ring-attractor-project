@@ -51,9 +51,9 @@ class SpikeGeneratorSimulator:
             rates[t] = self.simulator.attractor.neuron_rates
             spikes[t] = self.generator.generate_spikes(rates[t])
 
-            angle, mag = self.simulator.attractor.decode_theta()
+            angle, conf = self.simulator.attractor.decode_theta()
             thetas[t] = angle
-            confs[t] = mag / (rates[t].sum() + 1e-8)
+            confs[t] = conf
             self.simulator.perform_single_step(cue[t])
 
         # Append the new data to the existing simulator history

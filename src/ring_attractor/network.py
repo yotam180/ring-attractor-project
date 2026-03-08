@@ -35,9 +35,11 @@ class RingAttractor:
         We return the angle and magnitude of the complex result, to indicate both the direction
         and the confidence in the prediction. (confidence = 0 -> random distribution in ring, confidence = 1 -> pure bump)
         """
-        z = np.sum(self.neuron_rates * np.exp(1j * self.neuron_angles))
+        rates_pos = np.maximum(self.neuron_rates, 0.0)
 
-        return np.angle(z), np.abs(z)
+        z = np.sum(rates_pos * np.exp(1j * self.neuron_angles))
+        confidence = np.abs(z) / (rates_pos.sum() + 1e-8)
+        return np.angle(z), confidence
 
     def _initialize_neuron_angles(self) -> np.ndarray:
         return 2 * np.pi * (np.arange(self.ring_size) / self.ring_size)
