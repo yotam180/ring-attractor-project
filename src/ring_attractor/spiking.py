@@ -64,9 +64,10 @@ class SpikeGeneratorSimulator:
 
 
 class SpikeProcessor:
-    def __init__(self, dt: float, bin_factor: int):
+    def __init__(self, dt: float, bin_factor: int, smoothing_window: int = 1):
         self.dt = dt
         self.bin_factor = bin_factor
+        self.smoothing_window = smoothing_window
 
     def bin_spikes(self, spikes: np.ndarray) -> np.ndarray:
         """
@@ -78,3 +79,19 @@ class SpikeProcessor:
         t, n = spikes.shape
         t_bin = t // self.bin_factor
         return spikes[: t_bin * self.bin_factor].reshape(t_bin, self.bin_factor, n).sum(axis=1)
+
+    def smooth_bins(self, bins: np.ndarray) -> np.ndarray:
+        """
+        Causal boxcar smoothing with overriding the first window_size bins to avoid the ramp up
+        from 0 issue.
+        """
+        kernel = np.ones(self.smoothing_window) / self.smoothing_window
+
+        smoothed = np.convolve(bins, kernel, mode="full")[: len(bins)]
+
+        # We take the initial value from the first bin to avoid the ramp up from 0.
+        # Perhaps the correct way to do this would just be to trim the first window_size bins
+        # but for now this approach works.
+        smoothed[: self.smoothing_window] = bins[0, :]
+
+        return smoothed
