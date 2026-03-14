@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import convolve1d
 
 from ring_attractor.network import RingAttractorSimulator
 
@@ -87,7 +88,12 @@ class SpikeProcessor:
         """
         kernel = np.ones(self.smoothing_window) / self.smoothing_window
 
-        smoothed = np.convolve(bins, kernel, mode="full")[: len(bins)]
+        # We use scipy.ndimage.convolve1d instead of np.convolve because the latter only
+        # works with 1D arrays and we need it to work with 2D arrays (while convolving only
+        # along the time axis)
+        # origin=-(w//2) makes the convolution fully causal: output[i] depends only on
+        # past inputs without the ability to "peek" into future values.
+        smoothed = convolve1d(bins, kernel, axis=0, mode="constant", cval=0.0, origin=-(self.smoothing_window // 2))
 
         # We take the initial value from the first bin to avoid the ramp up from 0.
         # Perhaps the correct way to do this would just be to trim the first window_size bins
