@@ -3,6 +3,8 @@
 plans/
 # .venv/ for virtual environment
 .venv/
+# Generated datasets (too large for git, regenerate or download)
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
