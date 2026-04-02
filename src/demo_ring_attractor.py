@@ -30,6 +30,7 @@ J1 = 4.0              # Local excitation
 STEEPNESS = 4.0       # f-I curve steepness
 ALPHA = 0.01          # Leak rate (= dt / tau)
 SIGMA = 0.0           # Noise off for clean demos
+GAMMA = 2.0           # Divisive normalisation strength
 
 T_CUE = 2000          # Steps with external cue
 T_FREE = 5500         # Steps of autonomous dynamics
@@ -50,7 +51,7 @@ plt.rcParams["figure.dpi"] = 120
 # Each neuron has a preferred angle θ_i = 2πi/N.  Connectivity follows
 # a cosine kernel: W_ij = (J0 + J1 cos(θ_i − θ_j)) / N.
 
-ring = RingAttractor(N=N, J0=J0, J1=J1, steepness=STEEPNESS, alpha=ALPHA, sigma=SIGMA)
+ring = RingAttractor(N=N, J0=J0, J1=J1, steepness=STEEPNESS, alpha=ALPHA, sigma=SIGMA, gamma=GAMMA)
 
 # Show the weight matrix
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
@@ -209,7 +210,7 @@ print(f"Mean confidence: {confs.mean():.3f}  |  Mean |error|: {errors.mean():.2f
 # temporally bin, and smooth.
 
 ring_noisy = RingAttractor(N=N, J0=J0, J1=J1, steepness=STEEPNESS,
-                           alpha=ALPHA, sigma=0.1)  # noise on for realistic spikes
+                           alpha=ALPHA, sigma=0.1, gamma=GAMMA)  # noise on for realistic spikes
 res_sp = ring_noisy.simulate(T=T_TOTAL, cue_angles=[np.pi / 4],
                              cue_duration=T_CUE, seed=SEED)
 
@@ -244,7 +245,8 @@ plt.tight_layout(); plt.show()
 # | Nonlinearity | φ(x) = tanh(4 × ReLU(x)) |
 # | Leak rate | α = 0.01 |
 # | Cue | Gaussian, σ = 20°, amplitude = 3.0 |
-# | Equilibrium peak rate | ≈ 0.84 |
-# | Equilibrium FWHM | ≈ 90° |
-# | Equilibrium confidence | ≈ 0.84 |
+# | Divisive norm γ | 2.0 |
+# | Equilibrium peak rate | ≈ 0.73 (noiseless) |
+# | Equilibrium FWHM | ≈ 83° (noiseless), ~101° (σ=0.1) |
+# | Equilibrium confidence | ≈ 0.90 (noiseless), ~0.79 (σ=0.1) |
 # | Long-term stability | tested to 100k steps |

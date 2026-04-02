@@ -61,7 +61,7 @@ def test_bump_formation():
     )
     print(f"  Peak rate: {res.rates[-1].max():.4f}  |  FWHM: {fwhm:.0f}°")
 
-    ok = mean_conf > 0.80 and angle_err < np.radians(10) and fwhm < 120
+    ok = mean_conf > 0.75 and angle_err < np.radians(10) and fwhm < 120
     print(f"  → {PASS if ok else FAIL}")
     return ok
 
@@ -75,7 +75,7 @@ def test_bump_maintenance():
     all_ok = True
     for s, e, label in [(2000, 10000, "0-8k"), (10000, 50000, "8-48k"), (50000, 102000, "48-100k")]:
         mc, _ = _circ_stats(res.theta, res.confidence, label, s, e)
-        if mc < 0.80:
+        if mc < 0.75:
             all_ok = False
 
     early = res.rates[5000:10000].max(axis=1).mean()
@@ -119,7 +119,7 @@ def test_perturbation_recovery():
     print(f"  After recovery:      conf={res2.confidence[10000:].mean():.3f}")
     print(f"  Peak rate at end:    {res2.rates[-1].max():.4f}")
 
-    ok = res2.confidence[10000:].mean() > 0.80
+    ok = res2.confidence[10000:].mean() > 0.75
     print(f"  → {PASS if ok else FAIL}")
     return ok
 
@@ -140,7 +140,7 @@ def test_multiple_angles():
     print(f"  Angle errors:  mean={errors.mean():.1f}°  max={errors.max():.1f}°")
     print(f"  Confidences:   mean={confs.mean():.3f}  min={confs.min():.3f}")
 
-    ok = errors.mean() < 5 and confs.mean() > 0.80
+    ok = errors.mean() < 5 and confs.mean() > 0.75
     print(f"  → {PASS if ok else FAIL}")
     return ok
 

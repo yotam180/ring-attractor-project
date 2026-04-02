@@ -4,17 +4,21 @@ Ring attractor network and simulator.
 Core class: RingAttractor — holds network parameters (weights, angles,
 nonlinearity) and runs simulations via .simulate().
 
-Dynamics (discrete time):
-    h[t+1] = h[t] + α(-h[t] + φ(W h[t] + I_ext[t] + σ ξ[t]))
+Dynamics (discrete time, with divisive normalisation):
+    g[t] = 1 + γ · mean(r[t])
+    h[t+1] = h[t] + α(-h[t] + φ((W h[t] + I_ext[t] + σ ξ[t]) / g[t]))
 
 Nonlinearity:
     φ(x) = tanh(steepness × max(0, x))
 
+The divisive normalisation factor g creates competition between neurons:
+as total activity rises, the effective input to every neuron is scaled
+down, which sharpens the bump and produces a properly peaked profile
+instead of a flat-topped mesa.
+
 Weight matrix (cosine kernel, normalised by N):
     W_ij = (J0 + J1 cos(θ_i - θ_j)) / N
 """
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -25,20 +29,22 @@ import numpy as np
 # Simulation result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SimResult:
     """Container for simulation output."""
 
-    rates: np.ndarray       # (T, N)  non-negative firing rates ∈ [0, 1]
-    angles: np.ndarray      # (N,)    preferred angle of each neuron
-    theta: np.ndarray       # (T,)    decoded bump angle per step
+    rates: np.ndarray  # (T, N)  non-negative firing rates ∈ [0, 1]
+    angles: np.ndarray  # (N,)    preferred angle of each neuron
+    theta: np.ndarray  # (T,)    decoded bump angle per step
     confidence: np.ndarray  # (T,)    decoding confidence per step
-    weights: np.ndarray     # (N, N)  connectivity matrix
+    weights: np.ndarray  # (N, N)  connectivity matrix
 
 
 # ---------------------------------------------------------------------------
 # Ring attractor
 # ---------------------------------------------------------------------------
+
 
 class RingAttractor:
     """
@@ -56,6 +62,10 @@ class RingAttractor:
         Leak rate (= dt/τ).  Controls integration speed.
     sigma : float
         Additive Gaussian noise amplitude.
+    gamma : float
+        Divisive normalisation strength.  The recurrent input is divided
+        by (1 + γ · mean(r)), which sharpens the bump by creating
+        activity-dependent gain control.  γ=0 disables it.
     """
 
     def __init__(
@@ -66,6 +76,7 @@ class RingAttractor:
         steepness: float = 4.0,
         alpha: float = 0.01,
         sigma: float = 0.1,
+        gamma: float = 2.0,
     ):
         self.N = N
         self.J0 = J0
@@ -73,6 +84,7 @@ class RingAttractor:
         self.steepness = steepness
         self.alpha = alpha
         self.sigma = sigma
+        self.gamma = gamma
 
         self.angles = 2 * np.pi * np.arange(N) / N
         self.weights = self._make_weights()
@@ -148,7 +160,7 @@ class RingAttractor:
             for ca in cue_angles:
                 d = np.angle(np.exp(1j * (angles - ca)))
                 cue_envelopes.append(
-                    cue_amplitude * np.exp(-d**2 / (2 * cue_sigma**2))
+                    cue_amplitude * np.exp(-(d**2) / (2 * cue_sigma**2))
                 )
 
         # storage
@@ -169,9 +181,13 @@ class RingAttractor:
                 for env in cue_envelopes:
                     I_ext += env
 
-            # Euler step
+            # Euler step with divisive normalisation
             noise = sigma * rng.standard_normal(N)
-            dh = (-h + self.phi(W @ h + I_ext + noise)) * alpha
+            total_input = W @ h + I_ext + noise
+            if self.gamma > 0:
+                gain = 1.0 + self.gamma * r.mean()
+                total_input = total_input / gain
+            dh = (-h + self.phi(total_input)) * alpha
             h = h + dh
 
         return SimResult(
@@ -187,9 +203,8 @@ class RingAttractor:
 # Theta decoding  (population vector)
 # ---------------------------------------------------------------------------
 
-def decode_theta_single(
-    rates: np.ndarray, angles: np.ndarray
-) -> tuple[float, float]:
+
+def decode_theta_single(rates: np.ndarray, angles: np.ndarray) -> tuple[float, float]:
     """Decode (angle, confidence) from a single rate vector."""
     z = np.sum(rates * np.exp(1j * angles))
     total = rates.sum() + 1e-12

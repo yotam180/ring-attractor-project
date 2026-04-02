@@ -73,7 +73,7 @@ def fig_single_trial(seed=42):
     ax_conf.set_ylabel("Confidence")
     ax_conf.set_xlabel("Integration step")
     ax_conf.set_ylim(0, 1)
-    ax_conf.axhline(0.84, color="gray", ls=":", lw=0.5, label="equilibrium ~0.84")
+    ax_conf.axhline(0.79, color="gray", ls=":", lw=0.5, label="equilibrium ~0.79")
     ax_conf.legend(fontsize=8)
 
     return _save(fig, "01_single_trial.png")
