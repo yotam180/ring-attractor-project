@@ -5,6 +5,8 @@ plans/
 .venv/
 # Generated datasets (too large for git, regenerate or download)
 data/
+# Training checkpoints
+checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -137,3 +139,5 @@ cython_debug/
 *.swo
 *.bak
 *.tmp
+
+000939/
