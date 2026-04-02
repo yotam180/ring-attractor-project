@@ -4,17 +4,11 @@ Ring attractor network and simulator.
 Core class: RingAttractor — holds network parameters (weights, angles,
 nonlinearity) and runs simulations via .simulate().
 
-Dynamics (discrete time, with divisive normalisation):
-    g[t] = 1 + γ · mean(r[t])
-    h[t+1] = h[t] + α(-h[t] + φ((W h[t] + I_ext[t] + σ ξ[t]) / g[t]))
+Dynamics (discrete time):
+    h[t+1] = h[t] + α(-h[t] + φ(W h[t] + I_ext[t] + σ ξ[t]))
 
 Nonlinearity:
     φ(x) = tanh(steepness × max(0, x))
-
-The divisive normalisation factor g creates competition between neurons:
-as total activity rises, the effective input to every neuron is scaled
-down, which sharpens the bump and produces a properly peaked profile
-instead of a flat-topped mesa.
 
 Weight matrix (cosine kernel, normalised by N):
     W_ij = (J0 + J1 cos(θ_i - θ_j)) / N
@@ -23,6 +17,8 @@ Weight matrix (cosine kernel, normalised by N):
 from dataclasses import dataclass
 
 import numpy as np
+
+from . import defaults as _d
 
 
 # ---------------------------------------------------------------------------
@@ -62,21 +58,16 @@ class RingAttractor:
         Leak rate (= dt/τ).  Controls integration speed.
     sigma : float
         Additive Gaussian noise amplitude.
-    gamma : float
-        Divisive normalisation strength.  The recurrent input is divided
-        by (1 + γ · mean(r)), which sharpens the bump by creating
-        activity-dependent gain control.  γ=0 disables it.
     """
 
     def __init__(
         self,
-        N: int = 100,
-        J0: float = -2.0,
-        J1: float = 4.0,
-        steepness: float = 4.0,
-        alpha: float = 0.01,
-        sigma: float = 0.1,
-        gamma: float = 2.0,
+        N: int = _d.N,
+        J0: float = _d.J0,
+        J1: float = _d.J1,
+        steepness: float = _d.STEEPNESS,
+        alpha: float = _d.ALPHA,
+        sigma: float = _d.SIGMA,
     ):
         self.N = N
         self.J0 = J0
@@ -84,7 +75,6 @@ class RingAttractor:
         self.steepness = steepness
         self.alpha = alpha
         self.sigma = sigma
-        self.gamma = gamma
 
         self.angles = 2 * np.pi * np.arange(N) / N
         self.weights = self._make_weights()
@@ -109,8 +99,8 @@ class RingAttractor:
         cue_angles: list[float] | None = None,
         cue_onset: int = 0,
         cue_duration: int = 2000,
-        cue_amplitude: float = 3.0,
-        cue_sigma: float = np.radians(20),
+        cue_amplitude: float = _d.CUE_AMPLITUDE,
+        cue_sigma: float = _d.CUE_SIGMA,
         init_rates: np.ndarray | None = None,
         init_noise_scale: float = 0.01,
         seed: int | None = None,
@@ -181,12 +171,9 @@ class RingAttractor:
                 for env in cue_envelopes:
                     I_ext += env
 
-            # Euler step with divisive normalisation
+            # Euler step
             noise = sigma * rng.standard_normal(N)
             total_input = W @ h + I_ext + noise
-            if self.gamma > 0:
-                gain = 1.0 + self.gamma * r.mean()
-                total_input = total_input / gain
             dh = (-h + self.phi(total_input)) * alpha
             h = h + dh
 

@@ -38,28 +38,9 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from src.ring_attractor import RingAttractor, SpikeProcessor, decode_theta
+from src.ring_attractor import defaults as D
 
-# ── Simulator parameters ─────────────────────────────────────────────────
-N = 100
-J0 = -2.0
-J1 = 4.0
-STEEPNESS = 4.0
-ALPHA = 0.01  # dt / tau
-SIGMA = 0.1  # noise amplitude (on for realistic data)
-GAMMA = 2.0  # divisive normalisation
-
-# ── Trial parameters ─────────────────────────────────────────────────────
-N_ANGLES = 36  # 10-degree spacing
-T_CUE = 2000  # integration steps with external cue
-T_SETTLE = 500  # post-cue settling (confirm stability)
-T_RECORD = 10_000  # integration steps recorded -> 200 time bins
-CUE_AMPLITUDE = 3.0
-SIGMA_PERTURB_FRAC = 0.5  # perturbation sigma as fraction of peak rate
-
-# ── Spike processing ─────────────────────────────────────────────────────
-BIN_FACTOR = 50
-SMOOTHING_WINDOW = 3
-
+# ── Dataset generation parameters (not in defaults — specific to this script)
 SEED = 42
 OUT_DIR = _ROOT / "data"
 OUT_FILE = OUT_DIR / "ring_attractor_dataset.npz"
@@ -67,16 +48,10 @@ OUT_FILE = OUT_DIR / "ring_attractor_dataset.npz"
 
 def generate_dataset():
     """Generate Group A (maintenance) and Group B (perturbation recovery) trials."""
-    ring = RingAttractor(
-        N=N, J0=J0, J1=J1, steepness=STEEPNESS,
-        alpha=ALPHA, sigma=SIGMA, gamma=GAMMA,
-    )
-    sp = SpikeProcessor(
-        dt=0.01, rate_scale=100,
-        bin_factor=BIN_FACTOR, smoothing_window=SMOOTHING_WINDOW,
-    )
+    ring = RingAttractor()  # uses defaults from src.ring_attractor.defaults
+    sp = SpikeProcessor()   # uses defaults from src.ring_attractor.defaults
 
-    target_angles = np.linspace(0, 2 * np.pi, N_ANGLES, endpoint=False)
+    target_angles = np.linspace(0, 2 * np.pi, D.N_ANGLES, endpoint=False)
     rng = np.random.default_rng(SEED)
 
     trajectories = []
@@ -91,12 +66,11 @@ def generate_dataset():
     t0 = time.time()
     for i, theta in enumerate(target_angles):
         # ── Group A: Bump maintenance ────────────────────────────────
-        T_total_a = T_CUE + T_SETTLE + T_RECORD
+        T_total_a = D.T_CUE + D.T_SETTLE + D.T_RECORD
         res_a = ring.simulate(
             T=T_total_a,
             cue_angles=[theta],
-            cue_duration=T_CUE,
-            cue_amplitude=CUE_AMPLITUDE,
+            cue_duration=D.T_CUE,
             seed=int(rng.integers(1 << 31)),
         )
 
@@ -110,19 +84,19 @@ def generate_dataset():
         raw_early_confidences.append(np.nan)  # N/A for Group A
 
         # Spike processing on the recording window
-        rec_rates_a = res_a.rates[T_CUE + T_SETTLE :]
+        rec_rates_a = res_a.rates[D.T_CUE + D.T_SETTLE :]
         data_a = sp.process(rec_rates_a, seed=int(rng.integers(1 << 31)))
         trajectories.append(data_a.smoothed)
         groups.append("A")
         angles_list.append(theta)
 
         # ── Group B: Perturbation recovery ───────────────────────────
-        converged = res_a.rates[T_CUE + T_SETTLE - 1]
-        sigma_perturb = SIGMA_PERTURB_FRAC * converged.max()
-        perturbed = converged + sigma_perturb * rng.standard_normal(N)
+        converged = res_a.rates[D.T_CUE + D.T_SETTLE - 1]
+        sigma_perturb = D.SIGMA_PERTURB_FRAC * converged.max()
+        perturbed = converged + sigma_perturb * rng.standard_normal(D.N)
 
         res_b = ring.simulate(
-            T=T_RECORD,
+            T=D.T_RECORD,
             cue_angles=None,
             init_rates=perturbed,
             seed=int(rng.integers(1 << 31)),
@@ -147,7 +121,7 @@ def generate_dataset():
         if (i + 1) % 6 == 0 or i == 0:
             elapsed = time.time() - t0
             print(
-                f"  angle {i + 1:2d}/{N_ANGLES}  "
+                f"  angle {i + 1:2d}/{D.N_ANGLES}  "
                 f"({np.degrees(theta):5.1f} deg)  "
                 f"[{elapsed:.1f}s]"
             )
@@ -220,7 +194,7 @@ def validate(ds):
               f"simulator may have failed to form a bump")
     elif errs_a.max() > 5.0:
         print(f"  (Note: {errs_a.max():.1f} deg max error is expected — "
-              f"noise-induced angular drift over {T_RECORD} steps)")
+              f"noise-induced angular drift over {D.T_RECORD} steps)")
 
     # ── Layer 2: Spike pipeline (processed data) ─────────────────────
     print(f"\n── Layer 2: Spike pipeline (smoothed counts) ──")
@@ -282,11 +256,11 @@ def validate(ds):
 def main():
     print(f"Generating ring attractor dataset...")
     print(
-        f"  {N_ANGLES} angles x 2 groups = {2 * N_ANGLES} trials"
+        f"  {D.N_ANGLES} angles x 2 groups = {2 * D.N_ANGLES} trials"
     )
     print(
-        f"  {T_RECORD} integration steps -> "
-        f"{T_RECORD // BIN_FACTOR} time bins per trial"
+        f"  {D.T_RECORD} integration steps -> "
+        f"{D.T_RECORD // D.BIN_FACTOR} time bins per trial"
     )
     print()
 

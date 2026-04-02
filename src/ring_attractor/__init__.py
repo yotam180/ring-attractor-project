@@ -16,10 +16,12 @@ Quick-start::
     data.smoothed       # (T_bin, N) smoothed binned spike counts
 """
 
+from . import defaults
 from .network import RingAttractor, SimResult, decode_theta
 from .spiking import SpikeProcessor, SpikeData
 
 __all__ = [
+    "defaults",
     "RingAttractor",
     "SimResult",
     "SpikeProcessor",

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.ndimage import convolve1d
 
+from . import defaults as _d
+
 
 @dataclass
 class SpikeData:
@@ -40,10 +42,10 @@ class SpikeProcessor:
 
     def __init__(
         self,
-        dt: float = 0.01,
-        rate_scale: float = 100.0,
-        bin_factor: int = 50,
-        smoothing_window: int = 3,
+        dt: float = _d.DT,
+        rate_scale: float = _d.RATE_SCALE,
+        bin_factor: int = _d.BIN_FACTOR,
+        smoothing_window: int = _d.SMOOTHING_WINDOW,
     ):
         self.dt = dt
         self.rate_scale = rate_scale
