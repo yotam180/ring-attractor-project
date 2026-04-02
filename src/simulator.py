@@ -69,6 +69,7 @@ def simulate(
     cue_onset: int = 0,
     cue_duration: int = 2000,
     cue_amplitude: float = 3.0,
+    cue_sigma: float = np.radians(20),
     init_rates: np.ndarray | None = None,
     init_noise_scale: float = 0.01,
     seed: int | None = None,
@@ -101,7 +102,12 @@ def simulate(
     cue_duration : int
         Number of steps the cue is active.
     cue_amplitude : float
-        Peak amplitude of the cosine cue.
+        Peak amplitude of the cue.
+    cue_sigma : float
+        Width (std in radians) of the Gaussian cue envelope.  Default
+        np.radians(20) matches the natural autonomous bump width so the
+        transition from cue → free-run is seamless.  Set to np.inf for
+        the legacy full-cosine cue.
     init_rates : ndarray (N,), optional
         Initial hidden state.  If None, small Gaussian noise.
     init_noise_scale : float
@@ -141,11 +147,12 @@ def simulate(
         theta[t] = th
         confidence[t] = conf
 
-        # External cue input
+        # External cue input (Gaussian envelope for localized drive)
         I_ext = np.zeros(N, dtype=np.float64)
         if cue_angles is not None and cue_onset <= t < cue_onset + cue_duration:
             for ca in cue_angles:
-                I_ext += cue_amplitude * np.cos(angles - ca)
+                d = np.angle(np.exp(1j * (angles - ca)))  # circular distance
+                I_ext += cue_amplitude * np.exp(-d**2 / (2 * cue_sigma**2))
 
         # Euler step: hidden state update
         noise = sigma * rng.standard_normal(N)
