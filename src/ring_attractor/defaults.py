@@ -28,7 +28,7 @@ BIN_FACTOR: int = 50                # integration steps per time bin
 SMOOTHING_WINDOW: int = 3           # causal boxcar kernel width (bins)
 
 # ── Dataset generation ───────────────────────────────────────────────────
-N_ANGLES: int = 36                  # 10-degree spacing
+N_ANGLES: int = 72                  # 5-degree spacing
 T_CUE: int = 2000                   # integration steps with external cue
 T_SETTLE: int = 500                 # post-cue settling
 T_RECORD: int = 10_000              # integration steps recorded per trial

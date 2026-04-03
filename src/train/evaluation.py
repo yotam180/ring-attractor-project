@@ -87,6 +87,7 @@ def evaluate_predictions(
     norm_std: np.ndarray,
     device: torch.device,
     k_eval: int = 12,
+    observed_idx: np.ndarray | None = None,
 ) -> PredictionMetrics:
     """
     Compute MSE and circular angle error on a set of trials.
@@ -99,7 +100,10 @@ def evaluate_predictions(
 
     # Build input: first k_eval steps from trajectory, zeros after
     x = np.zeros((n_trials, T, input_dim), dtype=np.float32)
-    x[:, :k_eval, :] = trajectories[:, :k_eval, :input_dim]
+    if observed_idx is not None:
+        x[:, :k_eval, :] = trajectories[:, :k_eval][:, :, observed_idx]
+    else:
+        x[:, :k_eval, :] = trajectories[:, :k_eval, :input_dim]
 
     x_t = torch.from_numpy(x).to(device)
     y_true = torch.from_numpy(trajectories.astype(np.float32)).to(device)
@@ -196,6 +200,7 @@ def generalization_test(
     n_test: int = 36,
     k_teacher: int = 15,
     T_gen: int = 500,
+    observed_idx: np.ndarray | None = None,
 ) -> GeneralizationResult:
     """
     Test intermediate angles that the RNN never saw during training.
@@ -243,7 +248,10 @@ def generalization_test(
 
         # Build input: teacher-force for k_teacher steps, zeros after
         x = np.zeros((1, T_total_seq, input_dim), dtype=np.float32)
-        x[0, :k_teacher, :] = standardised[:k_teacher, :input_dim]
+        if observed_idx is not None:
+            x[0, :k_teacher, :] = standardised[:k_teacher][:, observed_idx]
+        else:
+            x[0, :k_teacher, :] = standardised[:k_teacher, :input_dim]
         x_t = torch.from_numpy(x).to(device)
 
         # Build target placeholder (we only need the output)
@@ -364,6 +372,7 @@ def full_evaluation(
     print("\n4.1  Predictive metrics")
     pred = evaluate_predictions(
         model, val_traj, neuron_angles, norm_mean, norm_std, device,
+        observed_idx=observed_idx,
     )
     print(f"  MSE (autonomous):     {pred.mse:.6f}")
     print(f"  Angle error:          {pred.angle_error_deg:.2f} deg")
@@ -381,6 +390,7 @@ def full_evaluation(
     print("\n4.3  Generalisation test  (36 intermediate angles)")
     gen = generalization_test(
         model, neuron_angles, norm_mean, norm_std, device,
+        observed_idx=observed_idx,
     )
     print(f"  Mean |drift|:         {gen.mean_abs_drift_deg:.2f} deg  (< 5 = pass)")
     print(f"  Max  |drift|:         {np.abs(gen.drift_deg).max():.2f} deg")

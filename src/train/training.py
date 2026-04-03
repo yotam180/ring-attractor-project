@@ -420,6 +420,9 @@ def _parse_args():
                    help="Final noise std (linear annealing from --noise)")
     p.add_argument("--circular-shift", action="store_true",
                    help="Enable circular shift augmentation")
+    p.add_argument("--scheduler", default="plateau",
+                   choices=["plateau", "cosine", "none"],
+                   help="LR scheduler type")
     p.add_argument("--device", default="auto")
     return p.parse_args()
 
@@ -440,6 +443,7 @@ if __name__ == "__main__":
         noise_std=args.noise,
         noise_std_final=args.noise_final,
         circular_shift_augment=args.circular_shift,
+        scheduler=args.scheduler,
         device=args.device,
     )
     result = train(args.data, cfg)
