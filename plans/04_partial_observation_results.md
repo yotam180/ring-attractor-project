@@ -140,9 +140,52 @@ python visualize_sweep.py    # ~5 seconds
 3. **Single network size (N=100).** Results may differ for larger or smaller networks.
 4. **No hyperparameter tuning per condition.** The same recipe was used at all k/N values. Partial observation might benefit from different noise/LR schedules.
 
-### Natural extensions
-1. **More seeds at k/N=0.10 and k/N=0.75** to establish reliable pass rates.
-2. **Finer sweep around the threshold** (k/N = 0.15, 0.20) to pin down the cliff location.
-3. **Structured vs random observation** — does knowing the neuron topology help?
-4. **Different network sizes** — does the threshold scale with N?
-5. **Varying trial duration** — the T_auto sensitivity test showed the baseline is stable to T=5000. Is this also true under partial observation?
+### Completed extensions
+1. **More seeds at k/N=0.10 and k/N=0.75** — see updated pass rates: 4/5 at 0.75, 2/5 at 0.10.
+2. **Finer sweep around the threshold** — k/N=0.20 passes 2/2, k/N=0.15 passes 1/2. Cliff is at 0.15-0.20.
+3. **Observation time (T-axis) sweep** — see Section 8 below.
+
+### Remaining extensions
+1. **Structured vs random observation** — does knowing the neuron topology help?
+2. **Different network sizes** — does the threshold scale with N?
+
+---
+
+## 8. Observation Time (T-axis) Results
+
+### Setup
+
+We varied trial length T = {200, 100, 50, 25} time bins at two observation fractions (k/N=1.0 and k/N=0.25) with 2 seeds each. Teacher-forcing K was scaled proportionally: K_max = min(20, T//4).
+
+Each time bin = 50 integration steps × 0.01 dt = 0.5 seconds. So T=200 = 100s, T=100 = 50s, T=50 = 25s, T=25 = 12.5s per trial.
+
+### Results
+
+| T (bins) | k/N | Seed 42 | Seed 123 | Pass rate |
+|---|---|---|---|---|
+| 200 | 1.00 | 3.55° PASS | 3.74° PASS | 2/2 |
+| 200 | 0.25 | 3.19° PASS | 3.25° PASS | 2/2 |
+| 100 | 1.00 | 4.40° PASS | 3.50° PASS | 2/2 |
+| 100 | 0.25 | 3.52° PASS | 3.74° PASS | 2/2 |
+| **50** | **1.00** | **6.86° FAIL** | **10.85° FAIL** | **0/2** |
+| **50** | **0.25** | **10.32° FAIL** | **14.28° FAIL** | **0/2** |
+| **25** | **1.00** | **10.36° FAIL** | **7.76° FAIL** | **0/2** |
+| **25** | **0.25** | **5.30° FAIL** | **6.47° FAIL** | **0/2** |
+
+### Key findings
+
+**There is a sharp T threshold between 50 and 100 time bins (25-50 seconds of observation per trial).** T=100 passes all conditions (4/4), T=50 fails all conditions (0/4). This is even sharper than the k/N cliff.
+
+**The T threshold is independent of k/N.** Both k/N=1.0 and k/N=0.25 fail at T=50 and pass at T=100. Observing more neurons doesn't compensate for insufficient temporal data, and observing fewer neurons doesn't need more temporal data. The two axes are largely independent.
+
+**The failure mode is drift, not ring structure.** At T=50 and T=25, uniformity (0.90-0.96) and circularity (0.81-0.96) still pass — the model learns a ring-shaped manifold. But the drift is 6-14° — the ring has discrete attracting regions at the training angles. With only 50 bins of autonomous dynamics per trial, the model doesn't see enough temporal data to learn truly neutral stability along the ring.
+
+**Interpretation:** Each trial provides two kinds of information: (a) the bump shape at a specific angle (from the teacher-forced phase), and (b) the temporal dynamics of bump maintenance (from the autonomous phase). At T=100, the ~80-bin autonomous phase is long enough to learn that bumps should persist stably at any angle. At T=50, the ~30-bin autonomous phase is too short — the model learns the bump shapes but not the continuous neutral stability.
+
+### Figures
+
+See `figs/04_observation_time/`:
+- `T_sweep_metrics.png` — three-panel metric curves vs T
+- `T_sweep_heatmap.png` — 2D pass rate heatmap (T × k/N)
+- `T_sweep_drift.png` — drift vs T, showing the sharp threshold
+- `T_sweep_summary_table.png` — full results table
