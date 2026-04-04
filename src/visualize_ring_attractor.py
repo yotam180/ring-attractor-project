@@ -23,7 +23,7 @@ from src.ring_attractor.plotting import (
     circ_error,
 )
 
-FIG_DIR = os.path.join(os.path.dirname(__file__), "..", "figs")
+FIG_DIR = os.path.join(os.path.dirname(__file__), "..", "figs", "01_simulator")
 RING = RingAttractor()
 
 

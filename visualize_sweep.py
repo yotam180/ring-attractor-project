@@ -21,7 +21,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 RESULTS_DIR = Path("data/sweep_results")
-FIG_DIR = Path("figs")
+FIG_DIR = Path("figs/04_partial_observation")
 
 SEED_COLORS = {
     42: "#2176AE", 123: "#F26419", 7: "#4CAF50",

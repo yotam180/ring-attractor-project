@@ -80,6 +80,7 @@ class TrainingConfig:
 
     # Data
     observation_fraction: float = 1.0   # k/N; 1.0 = full observation
+    max_trial_length: int | None = None  # truncate trials to this many bins (None = use all)
     val_fraction: float = 0.2
     val_seed: int = 42
 
@@ -191,7 +192,14 @@ def train(
     norm_std = data["std"]
 
     n_trials, T, N = trajectories.shape
-    print(f"Data: {n_trials} trials, T={T} bins, N={N} neurons")
+
+    # ── Trial truncation ────────────────────────────────────────
+    if config.max_trial_length is not None and config.max_trial_length < T:
+        trajectories = trajectories[:, :config.max_trial_length, :]
+        T = config.max_trial_length
+        print(f"Data: {n_trials} trials, T={T} bins (truncated), N={N} neurons")
+    else:
+        print(f"Data: {n_trials} trials, T={T} bins, N={N} neurons")
 
     # ── Observed neurons ─────────────────────────────────────────
     observed_idx = None
