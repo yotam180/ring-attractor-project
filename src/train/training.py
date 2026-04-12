@@ -83,6 +83,7 @@ class TrainingConfig:
     max_trial_length: int | None = None  # truncate trials to this many bins (None = use all)
     val_fraction: float = 0.2
     val_seed: int = 42
+    val_split_mode: str = "by_angle"   # "by_angle" (synthetic) or "random" (real data)
 
     # Checkpointing
     checkpoint_dir: str = "checkpoints"
@@ -166,6 +167,18 @@ def split_by_angle(
     return np.array(train_idx), np.array(val_idx)
 
 
+def random_split(
+    n_trials: int,
+    val_fraction: float = 0.2,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Simple random split for real data (no paired trial structure)."""
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(n_trials)
+    n_val = max(1, int(n_trials * val_fraction))
+    return perm[n_val:], perm[:n_val]
+
+
 # ── Main training function ──────────────────────────────────────────────
 
 
@@ -212,9 +225,14 @@ def train(
     input_dim = len(observed_idx) if observed_idx is not None else N
 
     # ── Train / val split ────────────────────────────────────────
-    train_idx, val_idx = split_by_angle(
-        n_trials, config.val_fraction, config.val_seed,
-    )
+    if config.val_split_mode == "random":
+        train_idx, val_idx = random_split(
+            n_trials, config.val_fraction, config.val_seed,
+        )
+    else:
+        train_idx, val_idx = split_by_angle(
+            n_trials, config.val_fraction, config.val_seed,
+        )
     print(f"Split: {len(train_idx)} train, {len(val_idx)} val  "
           f"(by angle, seed={config.val_seed})")
 
